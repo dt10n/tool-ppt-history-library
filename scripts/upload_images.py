@@ -46,14 +46,14 @@ def upload_one(item, base_url, bypass_token, import_token):
                     "Content-Type": content_type,
                 },
             )
-            with urllib.request.urlopen(request, timeout=180) as response:
+            with urllib.request.urlopen(request, timeout=60) as response:
                 if response.status != 200:
                     raise RuntimeError(f"HTTP {response.status}")
             with LOCK:
                 with CHECKPOINT.open("a", encoding="utf-8") as checkpoint:
                     checkpoint.write(item["key"] + "\n")
             return item["key"], item["size"], None
-        except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, RuntimeError) as error:
+        except Exception as error:
             last_error = str(error)
             if isinstance(error, urllib.error.HTTPError) and error.code in (401, 403):
                 break
