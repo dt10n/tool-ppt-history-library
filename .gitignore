@@ -39,3 +39,5 @@ yarn-error.log*
 /outputs/
 /work/
 /scripts/upload-manifest.jsonl
+/scripts/.uploaded-images.txt
+/scripts/.upload-failures.json
