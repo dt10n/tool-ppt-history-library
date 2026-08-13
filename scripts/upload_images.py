@@ -11,7 +11,9 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import io
 from pathlib import Path
+from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "scripts" / "upload-manifest.jsonl"
@@ -29,16 +31,27 @@ def load_uploaded():
     return set(CHECKPOINT.read_text(encoding="utf-8").splitlines())
 
 
+def optimized_image(path):
+    with Image.open(path) as image:
+        image = image.convert("RGB")
+        if image.width > 1600:
+            height = round(image.height * 1600 / image.width)
+            image = image.resize((1600, height), Image.Resampling.LANCZOS)
+        output = io.BytesIO()
+        image.save(output, format="WEBP", quality=82, method=4)
+        return output.getvalue()
+
+
 def upload_one(item, base_url, bypass_token, import_token):
     path = Path(item["path"])
-    content_type = mimetypes.guess_type(path.name)[0] or "image/jpeg"
+    content_type = "image/webp"
     endpoint = f"{base_url.rstrip('/')}/api/internal/import-image?{urllib.parse.urlencode({'key': item['key']})}"
     last_error = None
     for attempt in range(4):
         try:
             request = urllib.request.Request(
                 endpoint,
-                data=path.read_bytes(),
+                data=optimized_image(path),
                 method="PUT",
                 headers={
                     "Authorization": f"Bearer {import_token}",
