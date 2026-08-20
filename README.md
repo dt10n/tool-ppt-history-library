@@ -63,7 +63,9 @@ npm test
 
 ## 团队部署
 
-建议由公司部署负责人把本私有仓库接入腾讯 EdgeOne，并配置：
+详细操作请查看 [`docs/DEPLOYMENT_GUIDE.md`](docs/DEPLOYMENT_GUIDE.md)。
+
+建议由公司部署负责人把本仓库接入腾讯 EdgeOne，并配置：
 
 - 数据库及 `DB` 绑定
 - 私有对象存储及 `MEDIA` 绑定
