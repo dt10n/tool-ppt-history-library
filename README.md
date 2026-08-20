@@ -1,100 +1,73 @@
-# vinext-starter
+# PPT 历史图片素材库
 
-A clean full-stack starter running on
-[vinext](https://github.com/cloudflare/vinext), with optional Cloudflare D1 and
-Drizzle support.
+面向 PPT 团队的历史配图检索工具。通过主题词、PPT 标题、期数和图片文字快速找图，并显示素材来自哪一期 PPT、哪一页，方便复用历史页面。
 
-## Prerequisites
+## 当前数据范围
 
-- Node.js `>=22.13.0`
+- 公募直播 PPT
+- 私募直播 PPT
+- 对外演讲 PPT
+- 已排除学院素材，以及封面页、总结页等不需要复用的页面
+- 当前索引包含 7,827 张历史 PPT 页面和 11,024 条分类标签
 
-## Quick Start
+## 仓库包含什么
+
+- `app/`：网页界面与检索逻辑
+- `worker/`：服务端接口
+- `db/`、`drizzle/`：数据库结构及可重建的检索索引
+- `scripts/`：从本地素材库导出目录、上传图片的维护脚本
+- `tests/`：基本构建与页面测试
+
+## 为什么仓库里没有全部原图
+
+历史图片约 7GB，并且属于内部业务资料，不适合直接提交到 GitHub。即使本仓库是私有仓库，也应把程序、结构化数据和图片分开保存：
+
+- GitHub 私有仓库：程序代码和可重建的检索索引
+- 云端数据库：分类、OCR、PPT 期数与页码
+- 私有对象存储：7,827 张图片
+
+正式部署时需要配置一个数据库绑定 `DB` 和一个私有对象存储绑定 `MEDIA`。网页通过接口读取图片，不把原图公开在代码仓库中。
+
+## 本地运行
+
+要求 Node.js `>=22.13.0`。
 
 ```bash
 npm install
 npm run dev
+```
+
+构建与检查：
+
+```bash
 npm run build
+npm test
 ```
 
-This starter does not use `wrangler.jsonc`.
+## 数据更新
 
-## Included Shape
+本地素材库的当前来源目录为：
 
-- edit site code under `app/`
-- `.openai/hosting.json` declares optional Sites D1 and R2 bindings
-- `vite.config.ts` simulates declared bindings for local development
-- `db/schema.ts` starts intentionally empty
-- `examples/d1/` contains an optional D1 example surface
-- `drizzle.config.ts` supports local migration generation when needed
-
-## Workspace Auth Headers
-
-Signed-in visitors receive both `oai-authenticated-user-id` and `oai-authenticated-user-email`. Private Sites require every visitor to sign in; public Sites may also have anonymous visitors, for whom neither header is present.
-
-The user ID is stable for the same user on the same Site and different across Sites. Email and name are intended for display or contact purposes.
-
-SIWC-authenticated workspace sites may also receive
-`oai-authenticated-user-full-name` when the user's SIWC profile has a non-empty
-`name` claim. The full-name value is percent-encoded UTF-8 and is accompanied by
-`oai-authenticated-user-full-name-encoding: percent-encoded-utf-8`.
-
-Treat the full name as optional and fall back to email when it is absent:
-
-```tsx
-import { headers } from "next/headers";
-
-export default async function Home() {
-  const requestHeaders = await headers();
-  const userId = requestHeaders.get("oai-authenticated-user-id");
-  const email = requestHeaders.get("oai-authenticated-user-email");
-  const encodedFullName = requestHeaders.get("oai-authenticated-user-full-name");
-  const fullName =
-    encodedFullName &&
-    requestHeaders.get("oai-authenticated-user-full-name-encoding") ===
-      "percent-encoded-utf-8"
-      ? decodeURIComponent(encodedFullName)
-      : null;
-
-  const displayName = fullName ?? email;
-  // ...
-}
+```text
+/Users/fanlili/Desktop/范丽丽./图片素材库
 ```
 
-## Optional Dispatch-Owned ChatGPT Sign-In
+新增或修正素材后：
 
-Import the ready-to-use helpers from `app/chatgpt-auth.ts` when the site needs
-optional or required ChatGPT sign-in:
+1. 在本地素材库更新 SQLite 目录和图片。
+2. 运行 `python3 scripts/export_catalog.py` 重新生成检索索引。
+3. 将新增图片同步到私有对象存储。
+4. 检查期数、页码、OCR 和分类后，再提交代码及索引变更。
 
-- Use `getChatGPTUser()` for optional signed-in UI.
-- Use `requireChatGPTUser(returnTo)` for server-rendered pages that should send
-  anonymous visitors through Sign in with ChatGPT.
-- Use `chatGPTSignInPath(returnTo)` and `chatGPTSignOutPath(returnTo)` for
-  browser links or actions.
-- Pass a same-origin relative `returnTo` path for the destination after sign-in
-  or sign-out. The helper validates and safely encodes it.
-- Mark protected pages with `export const dynamic = "force-dynamic"` because
-  they depend on per-request identity headers.
+不要把 `.env`、访问令牌、数据库密码、上传凭证或整套原图提交到仓库。
 
-Dispatch owns `/signin-with-chatgpt`, `/signout-with-chatgpt`, `/callback`, the
-OAuth cookies, and identity header injection. Do not implement app routes for
-those reserved paths. Routes that do not import and call the helper remain
-anonymous-compatible.
+## 团队部署
 
-SIWC establishes identity only; it does not prove workspace membership. Use the
-Sites hosting platform's access policy controls for workspace-wide restrictions,
-or enforce explicit server-side membership or allowlist checks.
+建议由公司部署负责人把本私有仓库接入腾讯 EdgeOne，并配置：
 
-Use SIWC for account pages, user-specific dashboards, saved records, and write
-actions tied to the current ChatGPT user. Leave public content anonymous.
+- 数据库及 `DB` 绑定
+- 私有对象存储及 `MEDIA` 绑定
+- 公司域名
+- 飞书登录或公司内部访问白名单
 
-## Useful Commands
-
-- `npm run dev`: start local development
-- `npm run build`: verify the vinext build output
-- `npm test`: build the starter and verify its rendered loading skeleton
-- `npm run db:generate`: generate Drizzle migrations after schema changes
-
-## Learn More
-
-- [vinext Documentation](https://github.com/cloudflare/vinext)
-- [Drizzle D1 Guide](https://orm.drizzle.team/docs/get-started/d1-new)
+这样同事通过统一网址使用，维护人员通过 GitHub 协作更新程序。
