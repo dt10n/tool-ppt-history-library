@@ -8,29 +8,31 @@
 - 私募直播 PPT
 - 对外演讲 PPT
 - 已排除学院素材，以及封面页、总结页等不需要复用的页面
-- 当前索引包含 7,827 张历史 PPT 页面和 11,024 条分类标签
+- 当前权威库可导出 8,076 张历史 PPT 页面和 11,286 条分类标签（以每次导出结果为准）
 
-## 仓库包含什么
+## 当前部署结构
 
-- `app/`：网页界面与检索逻辑
-- `worker/`：服务端接口
-- `db/`、`drizzle/`：数据库结构及可重建的检索索引
-- `scripts/`：从本地素材库导出目录、上传图片的维护脚本
+- `src/`、`app/LibraryExplorer.tsx`：Vite + React 前端
+- `cloud-functions/api/`：EdgeOne Node.js API
+- `supabase/schema.sql`：PostgreSQL 表、索引和检索函数
+- `scripts/export_catalog.py`：只读导出 Supabase CSV 和 COS 上传清单
 - `tests/`：基本构建与页面测试
+
+生产架构为 EdgeOne Makers + Supabase + 腾讯云 COS。仓库已移除 OpenAI Sites、Cloudflare D1/R2、Wrangler 和 vinext 运行依赖。
 
 ## 为什么仓库里没有全部原图
 
-历史图片约 7GB，并且属于内部业务资料，不适合直接提交到 GitHub。即使本仓库是私有仓库，也应把程序、结构化数据和图片分开保存：
+历史图片体积较大，并且属于内部业务资料，不适合直接提交到 GitHub。即使本仓库是私有仓库，也应把程序、结构化数据和图片分开保存：
 
-- GitHub 私有仓库：程序代码和可重建的检索索引
+- GitHub 仓库：程序代码（建议恢复为私有）
 - 云端数据库：分类、OCR、PPT 期数与页码
 - 私有对象存储：7,827 张图片
 
-正式部署时需要配置一个数据库绑定 `DB` 和一个私有对象存储绑定 `MEDIA`。网页通过接口读取图片，不把原图公开在代码仓库中。
+正式部署时在 EdgeOne 服务端配置 Supabase 和 COS 环境变量。网页通过 Cloud Functions 读取数据和生成 5 分钟 COS 签名地址，不把密钥或原图公开在代码仓库中。
 
 ## 本地运行
 
-要求 Node.js `>=22.13.0`。
+要求 Node.js `>=20`。
 
 ```bash
 npm install
@@ -55,9 +57,9 @@ npm test
 新增或修正素材后：
 
 1. 在本地素材库更新 SQLite 目录和图片。
-2. 运行 `python3 scripts/export_catalog.py` 重新生成检索索引。
-3. 将新增图片同步到私有对象存储。
-4. 检查期数、页码、OCR 和分类后，再提交代码及索引变更。
+2. 运行 `python3 scripts/export_catalog.py` 导出 CSV 和 COS 清单（写入被 Git 忽略的 `exports/`）。
+3. 将新增图片同步到 COS，并将结构化记录增量导入 Supabase。
+4. 检查期数、页码、OCR 和分类。仅数据变化时无需重新部署网页。
 
 不要把 `.env`、访问令牌、数据库密码、上传凭证或整套原图提交到仓库。
 
@@ -67,8 +69,8 @@ npm test
 
 建议由公司部署负责人把本仓库接入腾讯 EdgeOne，并配置：
 
-- 数据库及 `DB` 绑定
-- 私有对象存储及 `MEDIA` 绑定
+- Supabase 服务端连接
+- COS 私有存储读取凭证
 - 公司域名
 - 飞书登录或公司内部访问白名单
 

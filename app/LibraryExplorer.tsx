@@ -112,6 +112,8 @@ export default function LibraryExplorer() {
   }, []);
 
   useEffect(() => {
+    // Search is an external API synchronization keyed by the submitted filters.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     runSearch(submittedQuery, selectedTag);
   }, [runSearch, submittedQuery, selectedTag]);
 
@@ -199,8 +201,7 @@ export default function LibraryExplorer() {
           <div className="card-grid" aria-busy={loading}>
             {items.map((item) => (
               <article className="slide-card" key={item.id}>
-                <a className="slide-preview" href={`/api/image?id=${encodeURIComponent(item.id)}`} target="_blank">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                <a className="slide-preview" href={`/api/image?id=${encodeURIComponent(item.id)}`} target="_blank" rel="noreferrer">
                   <img src={`/api/image?id=${encodeURIComponent(item.id)}`} alt={item.title} loading="lazy" />
                   <span className="zoom-hint">查看大图</span>
                 </a>
