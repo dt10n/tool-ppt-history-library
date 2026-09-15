@@ -1,77 +1,46 @@
-# PPT 历史图片素材库
+# PPT 历史配图库
 
-面向 PPT 团队的历史配图检索工具。通过主题词、PPT 标题、期数和图片文字快速找图，并显示素材来自哪一期 PPT、哪一页，方便复用历史页面。
+给 PPT 团队使用的历史页面检索工具。支持按模糊关键词搜索公募直播、私募直播和对外演讲 PPT 页面，并显示来源 PPT、期数和页码。
 
-## 当前数据范围
+## 当前架构
 
-- 公募直播 PPT
-- 私募直播 PPT
-- 对外演讲 PPT
-- 已排除学院素材，以及封面页、总结页等不需要复用的页面
-- 当前权威库可导出 8,076 张历史 PPT 页面和 11,286 条分类标签（以每次导出结果为准）
+- 本仓库：妙搭全栈应用代码、数据库结构和维护脚本。
+- 妙搭数据库：分类、OCR 文本、来源、期数、页码和图片记录。
+- 妙搭文件存储：PPT 原图。
+- 线上应用：[打开 PPT 历史配图库](https://epndqwwg0a.feishuapp.com/app/app_17cjaejyeks)
 
-## 当前部署结构
+原图、线上数据库导出、访问密钥和本地环境文件不会提交到 GitHub。仅克隆本仓库不会得到素材数据，需要在有权限的妙搭环境中运行。
 
-- `src/`、`app/LibraryExplorer.tsx`：Vite + React 前端
-- `cloud-functions/api/`：EdgeOne Node.js API
-- `supabase/schema.sql`：PostgreSQL 表、索引和检索函数
-- `scripts/export_catalog.py`：只读导出 Supabase CSV 和 COS 上传清单
-- `tests/`：基本构建与页面测试
+## 技术结构
 
-生产架构为 EdgeOne Makers + Supabase + 腾讯云 COS。仓库已移除 OpenAI Sites、Cloudflare D1/R2、Wrangler 和 vinext 运行依赖。
+- 前端：React + Vite，入口位于 `client/`。
+- 后端：NestJS，入口位于 `server/`。
+- 共享类型：`shared/`。
+- 数据库初始化：`migrations/001_library.sql`。
+- 妙搭应用 ID：`app_17cjaejyeks`，配置见 `.spark/meta.json`。
 
-## 为什么仓库里没有全部原图
+## 本地检查
 
-历史图片体积较大，并且属于内部业务资料，不适合直接提交到 GitHub。即使本仓库是私有仓库，也应把程序、结构化数据和图片分开保存：
-
-- GitHub 仓库：程序代码（建议恢复为私有）
-- 云端数据库：分类、OCR、PPT 期数与页码
-- 私有对象存储：7,827 张图片
-
-正式部署时在 EdgeOne 服务端配置 Supabase 和 COS 环境变量。网页通过 Cloud Functions 读取数据和生成 5 分钟 COS 签名地址，不把密钥或原图公开在代码仓库中。
-
-## 本地运行
-
-要求 Node.js `>=20`。
+要求 Node.js 22+、npm 10+，并具备妙搭项目访问权限。
 
 ```bash
-npm install
-npm run dev
-```
-
-构建与检查：
-
-```bash
+npm ci
+npm run type:check
 npm run build
-npm test
 ```
 
-## 数据更新
+## 更新方式
 
-本地素材库的当前来源目录为：
+1. 在三个历史 PPT 来源中发现新增或更新页面。
+2. 解析 PPT，排除封面页和总结页，并生成 OCR、来源、期数、页码和分类信息。
+3. 原图上传到妙搭文件存储，结构化记录写入妙搭数据库。
+4. 代码或数据库结构有变化时，再提交本仓库并由妙搭发布。
 
-```text
-/Users/fanlili/Desktop/范丽丽./图片素材库
-```
+图片和业务数据不随 Git 提交上传，因此日常新增素材不需要把图片提交到 GitHub。
 
-新增或修正素材后：
+## 安全要求
 
-1. 在本地素材库更新 SQLite 目录和图片。
-2. 运行 `python3 scripts/export_catalog.py` 导出 CSV 和 COS 清单（写入被 Git 忽略的 `exports/`）。
-3. 将新增图片同步到 COS，并将结构化记录增量导入 Supabase。
-4. 检查期数、页码、OCR 和分类。仅数据变化时无需重新部署网页。
-
-不要把 `.env`、访问令牌、数据库密码、上传凭证或整套原图提交到仓库。
-
-## 团队部署
-
-详细操作请查看 [`docs/DEPLOYMENT_GUIDE.md`](docs/DEPLOYMENT_GUIDE.md)。
-
-建议由公司部署负责人把本仓库接入腾讯 EdgeOne，并配置：
-
-- Supabase 服务端连接
-- COS 私有存储读取凭证
-- 公司域名
-- 飞书登录或公司内部访问白名单
-
-这样同事通过统一网址使用，维护人员通过 GitHub 协作更新程序。
+- 不提交 `.env`、访问令牌、数据库连接串或任何密钥。
+- 不提交原图、SQLite 文件或线上数据库导出。
+- 不把妙搭临时下载地址写死在代码中。
+- 仓库公开时，线上数据和文件仍须通过妙搭权限控制。
